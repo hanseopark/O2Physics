@@ -92,7 +92,7 @@ o2physics_add_dpl_workflow(candidate-selector-bplus-to-d0-pi
 
 o2physics_add_dpl_workflow(candidate-selector-bs-to-ds-pi
                     SOURCES candidateSelectorBsToDsPi.cxx
-                    PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore
+                    PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore O2Physics::MLCore
                     COMPONENT_NAME Analysis)
 
 o2physics_add_dpl_workflow(candidate-selector-d0
@@ -107,7 +107,7 @@ o2physics_add_dpl_workflow(candidate-selector-dplus-to-pi-k-pi
 
 o2physics_add_dpl_workflow(candidate-selector-ds-to-k-k-pi
                     SOURCES candidateSelectorDsToKKPi.cxx
-                    PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore
+                    PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore O2Physics::MLCore
                     COMPONENT_NAME Analysis)
 
 o2physics_add_dpl_workflow(candidate-selector-lb-to-lc-pi
