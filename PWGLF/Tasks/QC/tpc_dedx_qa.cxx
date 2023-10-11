@@ -19,6 +19,7 @@
 #include "Common/DataModel/PIDResponse.h"
 #include "Common/DataModel/TrackSelectionTables.h"
 #include "Common/DataModel/Centrality.h"
+#include "Common/DataModel/Multiplicity.h"
 #include "Framework/ASoAHelpers.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisTask.h"
@@ -68,6 +69,13 @@ struct tpc_dedx_qa {
     OutputObjHandlingPolicy::AnalysisObject,
     true,
     true};
+  // dE/dx for deuterons
+  HistogramRegistry registryDe{
+    "registryDe",
+    {},
+    OutputObjHandlingPolicy::AnalysisObject,
+    true,
+    true};
   // dE/dx for helium-3
   HistogramRegistry registryHe{
     "registryHe",
@@ -89,7 +97,7 @@ struct tpc_dedx_qa {
                                  "max chi2 per cluster ITS"};
   Configurable<float> etaMin{"etaMin", -0.8f, "etaMin"};
   Configurable<float> etaMax{"etaMax", +0.8f, "etaMax"};
-  Configurable<float> v0cospaMin{"v0cospaMin", 0.998, "Minimum V0 CosPA"};
+  Configurable<float> v0cospaMin{"v0cospaMin", 0.998f, "Minimum V0 CosPA"};
   Configurable<float> minimumV0Radius{"minimumV0Radius", 0.5f,
                                       "Minimum V0 Radius"};
   Configurable<float> maximumV0Radius{"maximumV0Radius", 100.0f,
@@ -109,144 +117,192 @@ struct tpc_dedx_qa {
   Configurable<float> maxDCAz{"maxDCAz", 0.1f, "maxDCAz"};
   Configurable<bool> eventSelection{"eventSelection", true, "event selection"};
 
+  // Reduce binning
+  ConfigurableAxis pBins_Pi{"pBins_Pi", {VARIABLE_WIDTH, -10.0, -5.0, -4.5, -4.0, -3.8, -3.6, -3.4, -3.2, -3.0, -2.8, -2.6, -2.4, -2.2, -2.0, -1.9, -1.8, -1.7, -1.6, -1.5, -1.4, -1.3, -1.2, -1.1, -1.0, -0.9, -0.8, -0.75, -0.7, -0.65, -0.6, -0.55, -0.5, -0.45, -0.4, -0.35, -0.3, -0.28, -0.26, -0.24, -0.22, -0.2, 0.0, 0.2, 0.22, 0.24, 0.26, 0.28, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0, 4.5, 5.0, 10.0}, "p bins for pions"};
+  ConfigurableAxis pBins_Ka{"pBins_Ka", {VARIABLE_WIDTH, -2.0, -1.9, -1.8, -1.7, -1.6, -1.5, -1.4, -1.3, -1.2, -1.1, -1.0, -0.9, -0.8, -0.75, -0.7, -0.65, -0.6, -0.55, -0.5, -0.45, -0.4, -0.35, -0.3, -0.28, -0.26, -0.24, -0.22, -0.2, 0.0, 0.2, 0.22, 0.24, 0.26, 0.28, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0}, "p bins for kaons"};
+  ConfigurableAxis pBins_Pr{"pBins_Pr", {VARIABLE_WIDTH, -5.0, -4.5, -4.0, -3.5, -3.0, -2.8, -2.6, -2.4, -2.2, -2.0, -1.9, -1.8, -1.7, -1.6, -1.5, -1.4, -1.3, -1.2, -1.1, -1.0, -0.9, -0.8, -0.75, -0.7, -0.65, -0.6, -0.55, -0.5, -0.48, -0.46, -0.44, -0.42, -0.4, -0.38, -0.36, -0.34, -0.32, -0.3, 0.0, 0.3, 0.32, 0.34, 0.36, 0.38, 0.4, 0.42, 0.44, 0.46, 0.48, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.5, 4.0, 4.5, 5.0}, "p bins for protons"};
+  ConfigurableAxis pBins_De{"pBins_De", {VARIABLE_WIDTH, -1.5, -1.4, -1.3, -1.2, -1.1, -1.0, -0.9, -0.8, -0.75, -0.7, -0.65, -0.6, -0.55, -0.5, -0.48, -0.46, -0.44, -0.42, -0.4, -0.38, -0.36, -0.34, -0.32, -0.3, 0.0, 0.3, 0.32, 0.34, 0.36, 0.38, 0.4, 0.42, 0.44, 0.46, 0.48, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5}, "p bins for deuterons"};
+  ConfigurableAxis pBins_He{"pBins_He", {VARIABLE_WIDTH, -5.0, -4.5, -4.0, -3.5, -3.0, -2.8, -2.6, -2.4, -2.2, -2.0, -1.9, -1.8, -1.7, -1.6, -1.5, -1.4, -1.3, -1.2, -1.1, -1.0, 0.0, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.5, 4.0, 4.5, 5.0}, "p bins for helium-3"};
+
   void init(InitContext const&)
   {
+
+    // Variable binning
+    AxisSpec pAxis_Pi{pBins_Pi, "#it{p}/Z (GeV/c)"};
+    AxisSpec pAxis_Ka{pBins_Ka, "#it{p}/Z (GeV/c)"};
+    AxisSpec pAxis_Pr{pBins_Pr, "#it{p}/Z (GeV/c)"};
+    AxisSpec pAxis_De{pBins_De, "#it{p}/Z (GeV/c)"};
+    AxisSpec pAxis_He{pBins_He, "#it{p}/Z (GeV/c)"};
+
     // Charged Particles
     registryCh.add(
       "dEdx_vs_Momentum", "dE/dx", HistType::kTH2F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {1500, 0, 1500, "dE/dx (a. u.)"}});
+      {{100, -10.0, 10.0, "#it{p}/Z (GeV/c)"}, {100, 0.0, 600.0, "dE/dx (a. u.)"}});
 
     // Pions
     registryPi.add(
-      "dEdx_vs_Momentum_Pi_m0806", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {200, 0, 200, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      "dEdx_vs_Momentum_Pi_m0906", "dE/dx", HistType::kTH3F,
+      {pAxis_Pi, {150, 0.0, 150.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryPi.add(
       "dEdx_vs_Momentum_Pi_m0604", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {200, 0, 200, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Pi, {150, 0.0, 150.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryPi.add(
       "dEdx_vs_Momentum_Pi_m0402", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {200, 0, 200, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Pi, {150, 0.0, 150.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryPi.add(
       "dEdx_vs_Momentum_Pi_m0200", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {200, 0, 200, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Pi, {150, 0.0, 150.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryPi.add(
       "dEdx_vs_Momentum_Pi_p0002", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {200, 0, 200, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Pi, {150, 0.0, 150.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryPi.add(
       "dEdx_vs_Momentum_Pi_p0204", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {200, 0, 200, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Pi, {150, 0.0, 150.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryPi.add(
       "dEdx_vs_Momentum_Pi_p0406", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {200, 0, 200, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Pi, {150, 0.0, 150.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryPi.add(
-      "dEdx_vs_Momentum_Pi_p0608", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {200, 0, 200, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      "dEdx_vs_Momentum_Pi_p0609", "dE/dx", HistType::kTH3F,
+      {pAxis_Pi, {150, 0.0, 150.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     // Kaons
     registryKa.add(
-      "dEdx_vs_Momentum_Ka_m0806", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {600, 0, 600, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      "dEdx_vs_Momentum_Ka_m0906", "dE/dx", HistType::kTH3F,
+      {pAxis_Ka, {200, 0.0, 400.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryKa.add(
       "dEdx_vs_Momentum_Ka_m0604", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {600, 0, 600, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Ka, {200, 0.0, 400.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryKa.add(
       "dEdx_vs_Momentum_Ka_m0402", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {600, 0, 600, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Ka, {200, 0.0, 400.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryKa.add(
       "dEdx_vs_Momentum_Ka_m0200", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {600, 0, 600, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Ka, {200, 0.0, 400.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryKa.add(
       "dEdx_vs_Momentum_Ka_p0002", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {600, 0, 600, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Ka, {200, 0.0, 400.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryKa.add(
       "dEdx_vs_Momentum_Ka_p0204", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {600, 0, 600, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Ka, {200, 0.0, 400.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryKa.add(
       "dEdx_vs_Momentum_Ka_p0406", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {600, 0, 600, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Ka, {200, 0.0, 400.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryKa.add(
-      "dEdx_vs_Momentum_Ka_p0608", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {600, 0, 600, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      "dEdx_vs_Momentum_Ka_p0609", "dE/dx", HistType::kTH3F,
+      {pAxis_Ka, {200, 0.0, 400.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     // Protons
     registryPr.add(
-      "dEdx_vs_Momentum_Pr_m0806", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {1000, 0, 1000, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      "dEdx_vs_Momentum_Pr_m0906", "dE/dx", HistType::kTH3F,
+      {pAxis_Pr, {200, 0.0, 500.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryPr.add(
       "dEdx_vs_Momentum_Pr_m0604", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {1000, 0, 1000, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Pr, {200, 0.0, 500.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryPr.add(
       "dEdx_vs_Momentum_Pr_m0402", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {1000, 0, 1000, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Pr, {200, 0.0, 500.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryPr.add(
       "dEdx_vs_Momentum_Pr_m0200", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {1000, 0, 1000, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Pr, {200, 0.0, 500.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryPr.add(
       "dEdx_vs_Momentum_Pr_p0002", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {1000, 0, 1000, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Pr, {200, 0.0, 500.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryPr.add(
       "dEdx_vs_Momentum_Pr_p0204", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {1000, 0, 1000, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Pr, {200, 0.0, 500.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryPr.add(
       "dEdx_vs_Momentum_Pr_p0406", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {1000, 0, 1000, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_Pr, {200, 0.0, 500.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryPr.add(
-      "dEdx_vs_Momentum_Pr_p0608", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {1000, 0, 1000, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      "dEdx_vs_Momentum_Pr_p0609", "dE/dx", HistType::kTH3F,
+      {pAxis_Pr, {200, 0.0, 500.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
+
+    // Deuterons
+    registryDe.add(
+      "dEdx_vs_Momentum_De_m0906", "dE/dx", HistType::kTH3F,
+      {pAxis_De, {300, 0.0, 600.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
+
+    registryDe.add(
+      "dEdx_vs_Momentum_De_m0604", "dE/dx", HistType::kTH3F,
+      {pAxis_De, {300, 0.0, 600.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
+
+    registryDe.add(
+      "dEdx_vs_Momentum_De_m0402", "dE/dx", HistType::kTH3F,
+      {pAxis_De, {300, 0.0, 600.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
+
+    registryDe.add(
+      "dEdx_vs_Momentum_De_m0200", "dE/dx", HistType::kTH3F,
+      {pAxis_De, {300, 0.0, 600.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
+
+    registryDe.add(
+      "dEdx_vs_Momentum_De_p0002", "dE/dx", HistType::kTH3F,
+      {pAxis_De, {300, 0.0, 600.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
+
+    registryDe.add(
+      "dEdx_vs_Momentum_De_p0204", "dE/dx", HistType::kTH3F,
+      {pAxis_De, {300, 0.0, 600.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
+
+    registryDe.add(
+      "dEdx_vs_Momentum_De_p0406", "dE/dx", HistType::kTH3F,
+      {pAxis_De, {300, 0.0, 600.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
+
+    registryDe.add(
+      "dEdx_vs_Momentum_De_p0609", "dE/dx", HistType::kTH3F,
+      {pAxis_De, {300, 0.0, 600.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     // Helium-3
     registryHe.add(
-      "dEdx_vs_Momentum_He_m0806", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {1000, 0, 1500, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      "dEdx_vs_Momentum_He_m0906", "dE/dx", HistType::kTH3F,
+      {pAxis_He, {400, 0.0, 800.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryHe.add(
       "dEdx_vs_Momentum_He_m0604", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {1000, 0, 1500, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_He, {400, 0.0, 800.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryHe.add(
       "dEdx_vs_Momentum_He_m0402", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {1000, 0, 1500, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_He, {400, 0.0, 800.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryHe.add(
       "dEdx_vs_Momentum_He_m0200", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {1000, 0, 1500, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_He, {400, 0.0, 800.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryHe.add(
       "dEdx_vs_Momentum_He_p0002", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {1000, 0, 1500, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_He, {400, 0.0, 800.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryHe.add(
       "dEdx_vs_Momentum_He_p0204", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {1000, 0, 1500, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_He, {400, 0.0, 800.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryHe.add(
       "dEdx_vs_Momentum_He_p0406", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {1000, 0, 1500, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      {pAxis_He, {400, 0.0, 800.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     registryHe.add(
-      "dEdx_vs_Momentum_He_p0608", "dE/dx", HistType::kTH3F,
-      {{200, -10.0, 10.0, "z#upoint p (GeV/c)"}, {1000, 0, 1500, "dE/dx (a. u.)"}, {10, 0, 100, "centrality"}});
+      "dEdx_vs_Momentum_He_p0609", "dE/dx", HistType::kTH3F,
+      {pAxis_He, {400, 0.0, 800.0, "dE/dx (a. u.)"}, {10, 0.0, 100.0, "centrality"}});
 
     // Event Counter
     registryCh.add("histRecVtxZData", "collision z position", HistType::kTH1F, {{100, -20.0, +20.0, "z_{vtx} (cm)"}});
@@ -393,6 +449,8 @@ struct tpc_dedx_qa {
 
     // Centrality
     float centrality = collision.centFT0C();
+    if (centrality < 0.0 || centrality > 100.0)
+      centrality = 1.0;
 
     // Kaons
     for (auto& trk : tracks) {
@@ -408,8 +466,8 @@ struct tpc_dedx_qa {
 
       // Kaons
       if (trk.tpcInnerParam() > 0.4 && trk.hasTOF() && TMath::Abs(trk.tofNSigmaKa()) < 2.0) {
-        if (trk.eta() > -0.8 && trk.eta() < -0.6)
-          registryKa.fill(HIST("dEdx_vs_Momentum_Ka_m0806"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > -0.9 && trk.eta() < -0.6)
+          registryKa.fill(HIST("dEdx_vs_Momentum_Ka_m0906"), signedP, trk.tpcSignal(), centrality);
         if (trk.eta() > -0.6 && trk.eta() < -0.4)
           registryKa.fill(HIST("dEdx_vs_Momentum_Ka_m0604"), signedP, trk.tpcSignal(), centrality);
         if (trk.eta() > -0.4 && trk.eta() < -0.2)
@@ -422,13 +480,13 @@ struct tpc_dedx_qa {
           registryKa.fill(HIST("dEdx_vs_Momentum_Ka_p0204"), signedP, trk.tpcSignal(), centrality);
         if (trk.eta() > 0.4 && trk.eta() < 0.6)
           registryKa.fill(HIST("dEdx_vs_Momentum_Ka_p0406"), signedP, trk.tpcSignal(), centrality);
-        if (trk.eta() > 0.6 && trk.eta() < 0.8)
-          registryKa.fill(HIST("dEdx_vs_Momentum_Ka_p0608"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > 0.6 && trk.eta() < 0.9)
+          registryKa.fill(HIST("dEdx_vs_Momentum_Ka_p0609"), signedP, trk.tpcSignal(), centrality);
       }
 
       if (trk.tpcInnerParam() < 0.4) {
-        if (trk.eta() > -0.8 && trk.eta() < -0.6)
-          registryKa.fill(HIST("dEdx_vs_Momentum_Ka_m0806"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > -0.9 && trk.eta() < -0.6)
+          registryKa.fill(HIST("dEdx_vs_Momentum_Ka_m0906"), signedP, trk.tpcSignal(), centrality);
         if (trk.eta() > -0.6 && trk.eta() < -0.4)
           registryKa.fill(HIST("dEdx_vs_Momentum_Ka_m0604"), signedP, trk.tpcSignal(), centrality);
         if (trk.eta() > -0.4 && trk.eta() < -0.2)
@@ -441,14 +499,53 @@ struct tpc_dedx_qa {
           registryKa.fill(HIST("dEdx_vs_Momentum_Ka_p0204"), signedP, trk.tpcSignal(), centrality);
         if (trk.eta() > 0.4 && trk.eta() < 0.6)
           registryKa.fill(HIST("dEdx_vs_Momentum_Ka_p0406"), signedP, trk.tpcSignal(), centrality);
-        if (trk.eta() > 0.6 && trk.eta() < 0.8)
-          registryKa.fill(HIST("dEdx_vs_Momentum_Ka_p0608"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > 0.6 && trk.eta() < 0.9)
+          registryKa.fill(HIST("dEdx_vs_Momentum_Ka_p0609"), signedP, trk.tpcSignal(), centrality);
+      }
+
+      // Deuterons
+      if (trk.tpcInnerParam() > 1.0 && trk.hasTOF() && TMath::Abs(trk.tofNSigmaDe()) < 3.0) {
+        if (trk.eta() > -0.9 && trk.eta() < -0.6)
+          registryDe.fill(HIST("dEdx_vs_Momentum_De_m0906"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > -0.6 && trk.eta() < -0.4)
+          registryDe.fill(HIST("dEdx_vs_Momentum_De_m0604"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > -0.4 && trk.eta() < -0.2)
+          registryDe.fill(HIST("dEdx_vs_Momentum_De_m0402"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > -0.2 && trk.eta() < 0.0)
+          registryDe.fill(HIST("dEdx_vs_Momentum_De_m0200"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > 0.0 && trk.eta() < 0.2)
+          registryDe.fill(HIST("dEdx_vs_Momentum_De_p0002"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > 0.2 && trk.eta() < 0.4)
+          registryDe.fill(HIST("dEdx_vs_Momentum_De_p0204"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > 0.4 && trk.eta() < 0.6)
+          registryDe.fill(HIST("dEdx_vs_Momentum_De_p0406"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > 0.6 && trk.eta() < 0.9)
+          registryDe.fill(HIST("dEdx_vs_Momentum_De_p0609"), signedP, trk.tpcSignal(), centrality);
+      }
+
+      if (trk.tpcInnerParam() < 1.0) {
+        if (trk.eta() > -0.9 && trk.eta() < -0.6)
+          registryDe.fill(HIST("dEdx_vs_Momentum_De_m0906"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > -0.6 && trk.eta() < -0.4)
+          registryDe.fill(HIST("dEdx_vs_Momentum_De_m0604"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > -0.4 && trk.eta() < -0.2)
+          registryDe.fill(HIST("dEdx_vs_Momentum_De_m0402"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > -0.2 && trk.eta() < 0.0)
+          registryDe.fill(HIST("dEdx_vs_Momentum_De_m0200"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > 0.0 && trk.eta() < 0.2)
+          registryDe.fill(HIST("dEdx_vs_Momentum_De_p0002"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > 0.2 && trk.eta() < 0.4)
+          registryDe.fill(HIST("dEdx_vs_Momentum_De_p0204"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > 0.4 && trk.eta() < 0.6)
+          registryDe.fill(HIST("dEdx_vs_Momentum_De_p0406"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > 0.6 && trk.eta() < 0.9)
+          registryDe.fill(HIST("dEdx_vs_Momentum_De_p0609"), signedP, trk.tpcSignal(), centrality);
       }
 
       // Helium-3
-      if (trk.tpcSignal() > 180 && trk.tpcInnerParam() > 0.6 && trk.tpcNSigmaDe() > 3.0) {
-        if (trk.eta() > -0.8 && trk.eta() < -0.6)
-          registryHe.fill(HIST("dEdx_vs_Momentum_He_m0806"), signedP, trk.tpcSignal(), centrality);
+      if (trk.tpcSignal() > 180.0 && trk.tpcInnerParam() > 0.8 && trk.tpcNSigmaDe() > 2.0) {
+        if (trk.eta() > -0.9 && trk.eta() < -0.6)
+          registryHe.fill(HIST("dEdx_vs_Momentum_He_m0906"), signedP, trk.tpcSignal(), centrality);
         if (trk.eta() > -0.6 && trk.eta() < -0.4)
           registryHe.fill(HIST("dEdx_vs_Momentum_He_m0604"), signedP, trk.tpcSignal(), centrality);
         if (trk.eta() > -0.4 && trk.eta() < -0.2)
@@ -461,8 +558,8 @@ struct tpc_dedx_qa {
           registryHe.fill(HIST("dEdx_vs_Momentum_He_p0204"), signedP, trk.tpcSignal(), centrality);
         if (trk.eta() > 0.4 && trk.eta() < 0.6)
           registryHe.fill(HIST("dEdx_vs_Momentum_He_p0406"), signedP, trk.tpcSignal(), centrality);
-        if (trk.eta() > 0.6 && trk.eta() < 0.8)
-          registryHe.fill(HIST("dEdx_vs_Momentum_He_p0608"), signedP, trk.tpcSignal(), centrality);
+        if (trk.eta() > 0.6 && trk.eta() < 0.9)
+          registryHe.fill(HIST("dEdx_vs_Momentum_He_p0609"), signedP, trk.tpcSignal(), centrality);
       }
     }
 
@@ -493,8 +590,8 @@ struct tpc_dedx_qa {
       // K0s Selection
       if (passedK0Selection(v0, negTrack, posTrack, collision)) {
 
-        if (negTrack.eta() > -0.8 && negTrack.eta() < -0.6)
-          registryPi.fill(HIST("dEdx_vs_Momentum_Pi_m0806"), signedPneg, negTrack.tpcSignal(), centrality);
+        if (negTrack.eta() > -0.9 && negTrack.eta() < -0.6)
+          registryPi.fill(HIST("dEdx_vs_Momentum_Pi_m0906"), signedPneg, negTrack.tpcSignal(), centrality);
         if (negTrack.eta() > -0.6 && negTrack.eta() < -0.4)
           registryPi.fill(HIST("dEdx_vs_Momentum_Pi_m0604"), signedPneg, negTrack.tpcSignal(), centrality);
         if (negTrack.eta() > -0.4 && negTrack.eta() < -0.2)
@@ -507,11 +604,11 @@ struct tpc_dedx_qa {
           registryPi.fill(HIST("dEdx_vs_Momentum_Pi_p0204"), signedPneg, negTrack.tpcSignal(), centrality);
         if (negTrack.eta() > 0.4 && negTrack.eta() < 0.6)
           registryPi.fill(HIST("dEdx_vs_Momentum_Pi_p0406"), signedPneg, negTrack.tpcSignal(), centrality);
-        if (negTrack.eta() > 0.6 && negTrack.eta() < 0.8)
-          registryPi.fill(HIST("dEdx_vs_Momentum_Pi_p0608"), signedPneg, negTrack.tpcSignal(), centrality);
+        if (negTrack.eta() > 0.6 && negTrack.eta() < 0.9)
+          registryPi.fill(HIST("dEdx_vs_Momentum_Pi_p0609"), signedPneg, negTrack.tpcSignal(), centrality);
 
-        if (posTrack.eta() > -0.8 && posTrack.eta() < -0.6)
-          registryPi.fill(HIST("dEdx_vs_Momentum_Pi_m0806"), signedPpos, posTrack.tpcSignal(), centrality);
+        if (posTrack.eta() > -0.9 && posTrack.eta() < -0.6)
+          registryPi.fill(HIST("dEdx_vs_Momentum_Pi_m0906"), signedPpos, posTrack.tpcSignal(), centrality);
         if (posTrack.eta() > -0.6 && posTrack.eta() < -0.4)
           registryPi.fill(HIST("dEdx_vs_Momentum_Pi_m0604"), signedPpos, posTrack.tpcSignal(), centrality);
         if (posTrack.eta() > -0.4 && posTrack.eta() < -0.2)
@@ -524,15 +621,15 @@ struct tpc_dedx_qa {
           registryPi.fill(HIST("dEdx_vs_Momentum_Pi_p0204"), signedPpos, posTrack.tpcSignal(), centrality);
         if (posTrack.eta() > 0.4 && posTrack.eta() < 0.6)
           registryPi.fill(HIST("dEdx_vs_Momentum_Pi_p0406"), signedPpos, posTrack.tpcSignal(), centrality);
-        if (posTrack.eta() > 0.6 && posTrack.eta() < 0.8)
-          registryPi.fill(HIST("dEdx_vs_Momentum_Pi_p0608"), signedPpos, posTrack.tpcSignal(), centrality);
+        if (posTrack.eta() > 0.6 && posTrack.eta() < 0.9)
+          registryPi.fill(HIST("dEdx_vs_Momentum_Pi_p0609"), signedPpos, posTrack.tpcSignal(), centrality);
       }
 
       // Lambda Selection
       if (passedLambdaSelection(v0, negTrack, posTrack, collision)) {
 
-        if (posTrack.eta() > -0.8 && posTrack.eta() < -0.6)
-          registryPr.fill(HIST("dEdx_vs_Momentum_Pr_m0806"), signedPpos, posTrack.tpcSignal(), centrality);
+        if (posTrack.eta() > -0.9 && posTrack.eta() < -0.6)
+          registryPr.fill(HIST("dEdx_vs_Momentum_Pr_m0906"), signedPpos, posTrack.tpcSignal(), centrality);
         if (posTrack.eta() > -0.6 && posTrack.eta() < -0.4)
           registryPr.fill(HIST("dEdx_vs_Momentum_Pr_m0604"), signedPpos, posTrack.tpcSignal(), centrality);
         if (posTrack.eta() > -0.4 && posTrack.eta() < -0.2)
@@ -545,11 +642,11 @@ struct tpc_dedx_qa {
           registryPr.fill(HIST("dEdx_vs_Momentum_Pr_p0204"), signedPpos, posTrack.tpcSignal(), centrality);
         if (posTrack.eta() > 0.4 && posTrack.eta() < 0.6)
           registryPr.fill(HIST("dEdx_vs_Momentum_Pr_p0406"), signedPpos, posTrack.tpcSignal(), centrality);
-        if (posTrack.eta() > 0.6 && posTrack.eta() < 0.8)
-          registryPr.fill(HIST("dEdx_vs_Momentum_Pr_p0608"), signedPpos, posTrack.tpcSignal(), centrality);
+        if (posTrack.eta() > 0.6 && posTrack.eta() < 0.9)
+          registryPr.fill(HIST("dEdx_vs_Momentum_Pr_p0609"), signedPpos, posTrack.tpcSignal(), centrality);
 
-        if (negTrack.eta() > -0.8 && negTrack.eta() < -0.6)
-          registryPi.fill(HIST("dEdx_vs_Momentum_Pi_m0806"), signedPneg, negTrack.tpcSignal(), centrality);
+        if (negTrack.eta() > -0.9 && negTrack.eta() < -0.6)
+          registryPi.fill(HIST("dEdx_vs_Momentum_Pi_m0906"), signedPneg, negTrack.tpcSignal(), centrality);
         if (negTrack.eta() > -0.6 && negTrack.eta() < -0.4)
           registryPi.fill(HIST("dEdx_vs_Momentum_Pi_m0604"), signedPneg, negTrack.tpcSignal(), centrality);
         if (negTrack.eta() > -0.4 && negTrack.eta() < -0.2)
@@ -562,15 +659,15 @@ struct tpc_dedx_qa {
           registryPi.fill(HIST("dEdx_vs_Momentum_Pi_p0204"), signedPneg, negTrack.tpcSignal(), centrality);
         if (negTrack.eta() > 0.4 && negTrack.eta() < 0.6)
           registryPi.fill(HIST("dEdx_vs_Momentum_Pi_p0406"), signedPneg, negTrack.tpcSignal(), centrality);
-        if (negTrack.eta() > 0.6 && negTrack.eta() < 0.8)
-          registryPi.fill(HIST("dEdx_vs_Momentum_Pi_p0608"), signedPneg, negTrack.tpcSignal(), centrality);
+        if (negTrack.eta() > 0.6 && negTrack.eta() < 0.9)
+          registryPi.fill(HIST("dEdx_vs_Momentum_Pi_p0609"), signedPneg, negTrack.tpcSignal(), centrality);
       }
 
       // AntiLambda Selection
       if (passedAntiLambdaSelection(v0, negTrack, posTrack, collision)) {
 
-        if (negTrack.eta() > -0.8 && negTrack.eta() < -0.6)
-          registryPr.fill(HIST("dEdx_vs_Momentum_Pr_m0806"), signedPneg, negTrack.tpcSignal(), centrality);
+        if (negTrack.eta() > -0.9 && negTrack.eta() < -0.6)
+          registryPr.fill(HIST("dEdx_vs_Momentum_Pr_m0906"), signedPneg, negTrack.tpcSignal(), centrality);
         if (negTrack.eta() > -0.6 && negTrack.eta() < -0.4)
           registryPr.fill(HIST("dEdx_vs_Momentum_Pr_m0604"), signedPneg, negTrack.tpcSignal(), centrality);
         if (negTrack.eta() > -0.4 && negTrack.eta() < -0.2)
@@ -583,11 +680,11 @@ struct tpc_dedx_qa {
           registryPr.fill(HIST("dEdx_vs_Momentum_Pr_p0204"), signedPneg, negTrack.tpcSignal(), centrality);
         if (negTrack.eta() > 0.4 && negTrack.eta() < 0.6)
           registryPr.fill(HIST("dEdx_vs_Momentum_Pr_p0406"), signedPneg, negTrack.tpcSignal(), centrality);
-        if (negTrack.eta() > 0.6 && negTrack.eta() < 0.8)
-          registryPr.fill(HIST("dEdx_vs_Momentum_Pr_p0608"), signedPneg, negTrack.tpcSignal(), centrality);
+        if (negTrack.eta() > 0.6 && negTrack.eta() < 0.9)
+          registryPr.fill(HIST("dEdx_vs_Momentum_Pr_p0609"), signedPneg, negTrack.tpcSignal(), centrality);
 
-        if (posTrack.eta() > -0.8 && posTrack.eta() < -0.6)
-          registryPi.fill(HIST("dEdx_vs_Momentum_Pi_m0806"), signedPpos, posTrack.tpcSignal(), centrality);
+        if (posTrack.eta() > -0.9 && posTrack.eta() < -0.6)
+          registryPi.fill(HIST("dEdx_vs_Momentum_Pi_m0906"), signedPpos, posTrack.tpcSignal(), centrality);
         if (posTrack.eta() > -0.6 && posTrack.eta() < -0.4)
           registryPi.fill(HIST("dEdx_vs_Momentum_Pi_m0604"), signedPpos, posTrack.tpcSignal(), centrality);
         if (posTrack.eta() > -0.4 && posTrack.eta() < -0.2)
@@ -600,8 +697,8 @@ struct tpc_dedx_qa {
           registryPi.fill(HIST("dEdx_vs_Momentum_Pi_p0204"), signedPpos, posTrack.tpcSignal(), centrality);
         if (posTrack.eta() > 0.4 && posTrack.eta() < 0.6)
           registryPi.fill(HIST("dEdx_vs_Momentum_Pi_p0406"), signedPpos, posTrack.tpcSignal(), centrality);
-        if (posTrack.eta() > 0.6 && posTrack.eta() < 0.8)
-          registryPi.fill(HIST("dEdx_vs_Momentum_Pi_p0608"), signedPpos, posTrack.tpcSignal(), centrality);
+        if (posTrack.eta() > 0.6 && posTrack.eta() < 0.9)
+          registryPi.fill(HIST("dEdx_vs_Momentum_Pi_p0609"), signedPpos, posTrack.tpcSignal(), centrality);
       }
     }
   }
