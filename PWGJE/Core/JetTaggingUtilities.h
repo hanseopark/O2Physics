@@ -34,6 +34,7 @@ namespace JetTaggingUtilities
  *
  * @param particle MCParticle whose mother is to be found
  */
+
 template <typename T>
 int getOriginalMotherIndex(const typename T::iterator& particle)
 {
@@ -59,6 +60,8 @@ int getOriginalMotherIndex(const typename T::iterator& particle)
  * @param hfparticle MCParticle whose mother is to be found
  */
 
+//template <typename T>
+//int getOriginalHFMotherIndex(T &particles, const typename T::iterator& hfparticle)
 template <typename T>
 int getOriginalHFMotherIndex(const typename T::iterator& hfparticle)
 {
@@ -85,20 +88,35 @@ int getOriginalHFMotherIndex(const typename T::iterator& hfparticle)
  * @param particles table of generator level particles to be searched through
  * @param hftrack track passed as reference which is then replaced by the first track that originated from an HF shower
  */
-template <typename T, typename U, typename V>
-int jetTrackFromHFShower(T const& jet, U const& particles, typename V::iterator& hftrack)
-{
 
+template <typename T, typename U, typename V>
+int jetTrackFromHFShower(T const& jet, U const& particles, V const& tracks, typename V::iterator& hftrack)
+{#
+  std::vector<std::pair<int, typename V::iterator>> candCharmLf;
   int origin = -1;
   for (auto& track : jet.template tracks_as<V>()) {
     if (!track.has_mcParticle()) {
       continue;
     }
-    auto const& particle = track.template mcParticle_as<U>();
+      auto const& particle = track.template mcParticle_as<U>();
     origin = RecoDecay::getCharmHadronOrigin(particles, particle, true);
+
+    hftrack = track;
     if (origin == 1 || origin == 2) { // 1=charm , 2=beauty
       hftrack = track;
-      return origin;
+      return origin; 
+    }
+
+    if (origin == 2) {
+      hftrack = track;
+      return origin; // 2=beauty
+    }
+    candCharmLf.push_back(std::make_pair(origin, track));
+  }
+  for (const auto& cand : candCharmLf) {
+    if(cand.first==1) {
+      hftrack = cand.second;
+      return 1; // 1-charm
     }
   }
   return 0;
@@ -135,18 +153,18 @@ int jetParticleFromHFShower(T const& jet, U const& particles, typename U::iterat
  */
 
 template <typename T, typename U, typename V>
-int mcdJetFromHFShower(T const& jet, U const& particles, float dRMax = 0.25)
+int mcdJetFromHFShower(T const& jet, U const& particles, V const& tracks, float dRMax = 0.25)
 {
-
   typename V::iterator hftrack;
-  int origin = jetTrackFromHFShower(jet, particles, hftrack);
+  int origin = jetTrackFromHFShower(jet, particles, tracks, hftrack);
+  if (origin == 0) return 0;
   if (!hftrack.has_mcParticle()) {
     return 0;
   }
   auto const& hfparticle = hftrack.template mcParticle_as<U>();
   if (origin == 1 || origin == 2) {
 
-    int originalHFMotherIndex = getOriginalHFMotherIndex(hfparticle);
+    int originalHFMotherIndex = getOriginalHFMotherIndex<U>(hfparticle);
     if (originalHFMotherIndex > -1.0) {
 
       if (JetUtilities::deltaR(jet, particles.iteratorAt(originalHFMotherIndex)) < dRMax) {
@@ -160,7 +178,6 @@ int mcdJetFromHFShower(T const& jet, U const& particles, float dRMax = 0.25)
     } else {
       return 0;
     }
-
   } else {
 
     return 0;
@@ -175,7 +192,8 @@ int mcdJetFromHFShower(T const& jet, U const& particles, float dRMax = 0.25)
  * @param dRMax maximum distance in eta-phi of initiating heavy-flavour quark from the jet axis
  */
 
-template <typename T, typename U, typename V>
+//template <typename T, typename U, typename V>
+template <typename T, typename U>
 int mcpJetFromHFShower(T const& jet, U const& particles, float dRMax = 0.25)
 {
 
@@ -183,7 +201,8 @@ int mcpJetFromHFShower(T const& jet, U const& particles, float dRMax = 0.25)
   int origin = jetParticleFromHFShower(jet, particles, hfparticle);
   if (origin == 1 || origin == 2) {
 
-    int originalHFMotherIndex = getOriginalHFMotherIndex(hfparticle);
+    //int originalHFMotherIndex = getOriginalHFMotherIndex(particles, hfparticle);
+    int originalHFMotherIndex = getOriginalHFMotherIndex<U>(hfparticle);
     if (originalHFMotherIndex > -1.0) {
 
       if (JetUtilities::deltaR(jet, particles.iteratorAt(originalHFMotherIndex)) < dRMax) {
