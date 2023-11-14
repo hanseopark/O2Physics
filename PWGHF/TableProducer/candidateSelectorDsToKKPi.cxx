@@ -26,6 +26,7 @@
 #include "PWGHF/DataModel/CandidateSelectionTables.h"
 
 using namespace o2;
+using namespace o2::analysis;
 using namespace o2::framework;
 
 /// Struct for applying Ds to KKpi selection cuts
@@ -279,10 +280,10 @@ struct HfCandidateSelectorDsToKKPi {
         }
         continue;
       }
-      if (pidDsToKKPi) {
+      if (topolDsToKKPi && pidDsToKKPi) {
         SETBIT(statusDsToKKPi, aod::SelectionStep::RecoPID);
       }
-      if (pidDsToPiKK) {
+      if (topolDsToPiKK && pidDsToPiKK) {
         SETBIT(statusDsToPiKK, aod::SelectionStep::RecoPID);
       }
       if (activateQA) {
@@ -308,10 +309,10 @@ struct HfCandidateSelectorDsToKKPi {
           hfSelDsToKKPiCandidate(statusDsToKKPi, statusDsToPiKK);
           continue;
         }
-        if (pidDsToKKPi) {
+        if (topolDsToKKPi && pidDsToKKPi) {
           SETBIT(statusDsToKKPi, aod::SelectionStep::RecoMl);
         }
-        if (pidDsToPiKK) {
+        if (topolDsToPiKK && pidDsToPiKK) {
           SETBIT(statusDsToPiKK, aod::SelectionStep::RecoMl);
         }
         if (activateQA) {
