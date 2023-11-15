@@ -13,6 +13,7 @@
 /// \brief Jet tagging related utilities
 ///
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>
+/// \author Hanseo Park
 
 #ifndef PWGJE_CORE_JETTAGGINGUTILITIES_H_
 #define PWGJE_CORE_JETTAGGINGUTILITIES_H_
@@ -35,6 +36,32 @@ enum JetTaggingSpecies {
   lightquark = 4,
   gluon = 5
 };
+
+namespace JetTaggingBinCut
+{
+static constexpr int nBinsJetPt = 18;
+constexpr double binsJetPt[nBinsJetPt + 1] = {
+  0,
+  2.0,
+  4.0,
+  10.0,
+  15.0,
+  20.0,
+  25.0,
+  30.0,
+  35.0,
+  40.0,
+  45.0,
+  50.0,
+  55.0,
+  60.0,
+  65.0,
+  70.0,
+  80.0,
+  90.0,
+  100.0};
+auto vecBinsJetPt = std::vector<double>{binsJetPt, binsJetPt + nBinsJetPt + 1};
+}; // namespace JetTaggingBinCut
 
 namespace JetTaggingUtilities
 {
@@ -273,6 +300,25 @@ int jetOrigin(T const& jet, U const& particles, float dRMax = 0.25)
   }
 
   return 0;
+}
+
+template <typename T, typename U, typename V>
+void SetSgnImpactParameterSignificance(T const& collision, U const& jet, V const& track, int& sgn, double& IPxy, double& SgnIPxy, double& IPxySig, double& SgnIPxySig, double& IPxyz, double& SgnIPxyz, double& IPxyzSig, double& SgnIPxyzSig)
+{
+  sgn = TMath::Sign(1, (track.x() - collision.posX()) * jet.px() + (track.y() - collision.posY()) * jet.py());
+  // IPxy
+  IPxy = track.dcaXY();
+  SgnIPxy = sgn * TMath::Abs(IPxy);
+  IPxySig = IPxy / TMath::Sqrt(track.sigmaDcaXY2());
+  SgnIPxySig = sgn * TMath::Abs(IPxySig);
+
+  // IPxyz
+  IPxyz = TMath::Sqrt(track.dcaXY() * track.dcaXY() + track.dcaZ() * track.dcaZ());
+  SgnIPxyz = sgn * TMath::Abs(IPxyz);
+  double dFdxy = 2 * track.dcaXY() / IPxyz;
+  double dFdz = 2 * track.dcaZ() / IPxyz;
+  IPxyzSig /= TMath::Sqrt(track.cYY() * dFdxy * dFdxy + track.cZZ() * dFdz * dFdz + 2 * track.cZY() * dFdxy * dFdz);
+  SgnIPxyzSig = sgn * TMath::Abs(IPxyzSig);
 }
 
 }; // namespace JetTaggingUtilities
