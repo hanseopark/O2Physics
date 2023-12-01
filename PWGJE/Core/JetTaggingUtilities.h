@@ -13,6 +13,7 @@
 /// \brief Jet tagging related utilities
 ///
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>
+/// \author Hanseo Park <hanseo.park@cern.ch>
 
 #ifndef PWGJE_CORE_JETTAGGINGUTILITIES_H_
 #define PWGJE_CORE_JETTAGGINGUTILITIES_H_
@@ -35,6 +36,32 @@ enum JetTaggingSpecies {
   lightquark = 4,
   gluon = 5
 };
+
+namespace JetTaggingBinCut
+{
+static constexpr int nBinsJetPt = 18;
+constexpr double binsJetPt[nBinsJetPt + 1] = {
+  0,
+  2.0,
+  4.0,
+  10.0,
+  15.0,
+  20.0,
+  25.0,
+  30.0,
+  35.0,
+  40.0,
+  45.0,
+  50.0,
+  55.0,
+  60.0,
+  65.0,
+  70.0,
+  80.0,
+  90.0,
+  100.0};
+auto vecBinsJetPt = std::vector<double>{binsJetPt, binsJetPt + nBinsJetPt + 1};
+}; // namespace JetTaggingBinCut
 
 namespace JetTaggingUtilities
 {
@@ -180,6 +207,7 @@ int mcdJetFromHFShower(T const& jet, U const& tracks, V const& particles, float 
     int originalHFMotherIndex = getOriginalHFMotherIndex<V>(hfparticle);
     if (originalHFMotherIndex > -1.0) {
 
+      return origin;
       if (JetUtilities::deltaR(jet, particles.iteratorAt(originalHFMotherIndex)) < dRMax) {
 
         return origin;
@@ -273,6 +301,88 @@ int jetOrigin(T const& jet, U const& particles, float dRMax = 0.25)
   }
 
   return 0;
+}
+
+template <typename T, typename U, typename V>
+int getGeoSign(T const& collision, U const& jet, V const& track)
+{
+  auto sgn = TMath::Sign(1, (track.dcaX() - collision.posX()) * jet.px() + (track.dcaY() - collision.posY()) * jet.py() + (track.dcaZ() - collision.posZ())*jet.pz());
+//  std::cout << "dcax: " << track.dcaX() << " collx: " << collision.posX() << " jetpx: " << jet.px() << "\n";
+//  std::cout << "dcay: " << track.dcaY() << " collx: " << collision.posY() << " jetpx: " << jet.py() << "\n";
+//  std::cout << "dcaz: " << track.dcaZ() << " collx: " << collision.posZ() << " jetpx: " << jet.pz() << "\n";
+//  std::cout << "det: " << (track.dcaX() - collision.posX()) * jet.px() + (track.dcaY() - collision.posY()) * jet.py() + (track.dcaZ() - collision.posZ())*jet.pz()
+//  std::cout << "sign: " << sgn << "\n";
+  return sgn;  
+}
+
+template <typename AnyCollision, typename AnyJet, typename Constituent>
+int getSignIP(AnyCollision const& collision, AnyJet const& jet, Constituent const& constit) /// Determine Impact paramter sign
+{
+  // Calculate Sign
+  double posdcatrack[3] = {0., 0., 0.};
+  posdcatrack[0] = constit.x();
+  posdcatrack[1] = constit.y();
+  posdcatrack[2] = constit.z();
+
+  // Performs local->global transformation of the track position.
+  double cs = TMath::Cos(constit.alpha()), sn = TMath::Sin(constit.alpha()), x = posdcatrack[0];
+  posdcatrack[0] = x * cs - posdcatrack[1] * sn;
+  posdcatrack[1] = x * sn + posdcatrack[1] * cs;
+
+  // auto collision = jet.template collision_as<aod::Collisions>();
+
+  double ipvector3[3] = {posdcatrack[0] - collision.posX(), posdcatrack[1] - collision.posY(), posdcatrack[2] - collision.posZ()};
+  int sign = TMath::Sign(1., ipvector3[0] * jet.px() + ipvector3[1] * jet.py() + ipvector3[2] * jet.pz());
+
+  return sign;
+}
+
+template <typename AnyCollision, typename AnyJet, typename Constituent>
+float getdcaXGlo(AnyCollision const& collision, AnyJet const& jet, Constituent const& constit) /// Determine Impact paramter sign
+{
+  float posdcatrack[3] = {0., 0., 0.};
+  posdcatrack[0] = constit.x();
+  posdcatrack[1] = constit.y();
+  posdcatrack[2] = constit.z();
+
+  // Performs local->global transformation of the track position.
+  float cs = TMath::Cos(constit.alpha()), sn = TMath::Sin(constit.alpha()), x = posdcatrack[0];
+  posdcatrack[0] = x * cs - posdcatrack[1] * sn;
+  posdcatrack[1] = x * sn + posdcatrack[1] * cs;
+
+  float ipvector3[3] = {posdcatrack[0] - collision.posX(), posdcatrack[1] - collision.posY(), posdcatrack[2] - collision.posZ()};
+  return ipvector3[0];
+
+}
+
+//template <typename T, typename U, typename V>
+//void SetSgnImpactParameterSignificance(T const& collision, U const& jet, V const& track, int& sgn, double& IPxy, double& SgnIPxy, double& IPxySig, double& SgnIPxySig, double& IPxyz, double& SgnIPxyz, double& IPxyzSig, double& SgnIPxyzSig)
+template <typename T, typename U, typename V>
+void SetSgnImpactParameterSignificance(T const& collision, U const& jet, V const& track, int& sgn, float& IPxy, float& SgnIPxy, float& IPxySig, float& SgnIPxySig, float& IPxyz, float& SgnIPxyz, float& IPxyzSig, float& SgnIPxyzSig)
+{
+  //LOGF(info, Form("coll x: %f, track x: %f", collision.posX(), track.x()));
+  //LOGF(info, Form("coll y: %f, track y: %f", collision.posY(), track.y()));
+  //LOGF(info, Form("track z: %f", track.z()));
+  //sgn = TMath::Sign(1, (track.x() - collision.posX()) * jet.px() + (track.y() - collision.posY()) * jet.py()); // geometric sign +1: from SV, +1,-1: from PV
+  //sgn = TMath::Sign(1, (track.x() - collision.posX()) * jet.px() + (track.y() - collision.posY()) * jet.py() + (track.z()-collision.posZ()) * jet.pz()); // geometric sign +1: from SV, +1,-1: from PV
+  //sgn = TMath::Sign(1, (track.x() - collision.posX()) * jet.px() + (track.y() - collision.posY()) * jet.py() + (track.z()-collision.posZ()) * jet.pz()); // geometric sign +1: from SV, +1,-1: from PV
+  //std::cout << "track x: " << track.x() << " collision x: " << collision.posX() << " jet px: " << jet.px() << "\n";
+  sgn = getGeoSign(collision, jet, track);
+  //sgn = getSignIP(collision, jet, track);
+  // IPxy
+  IPxy = track.dcaXY();
+  SgnIPxy = sgn * TMath::Abs(IPxy);
+  IPxySig = IPxy / TMath::Sqrt(track.sigmaDcaXY2());
+  SgnIPxySig = sgn * TMath::Abs(IPxySig);
+
+  // IPxyz
+  IPxyz = TMath::Sqrt(track.dcaXY() * track.dcaXY() + track.dcaZ() * track.dcaZ());
+  IPxyzSig = IPxyz;
+  SgnIPxyz = sgn * TMath::Abs(IPxyz);
+  float dFdxy = 2 * track.dcaXY() / IPxyz;
+  float dFdz = 2 * track.dcaZ() / IPxyz;
+  IPxyzSig /= TMath::Sqrt(track.cYY() * dFdxy * dFdxy + track.cZZ() * dFdz * dFdz + 2 * track.cZY() * dFdxy * dFdz);
+  SgnIPxyzSig = sgn * TMath::Abs(IPxyzSig);
 }
 
 }; // namespace JetTaggingUtilities

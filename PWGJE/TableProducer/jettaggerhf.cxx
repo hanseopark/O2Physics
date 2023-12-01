@@ -59,7 +59,8 @@ struct JetTaggerHFTask {
   }
   PROCESS_SWITCH(JetTaggerHFTask, processData, "Fill tagging decision for data jets", false);
 
-  void processMCD(aod::JCollision const& collision, JetTableMCD const& mcdjets, soa::Join<aod::JTracks, aod::McTrackLabels> const& tracks, aod::JMcParticles const& particles)
+  //void processMCD(aod::JCollision const& collision, JetTableMCD const& mcdjets, soa::Join<aod::JTracks, aod::McTrackLabels> const& tracks, aod::JMcParticles const& particles)
+  void processMCD(aod::JCollision const& collision, JetTableMCD const& mcdjets, soa::Join<aod::JTracks, aod::JMcTrackLbs> const& tracks, aod::JMcParticles const& particles)
   {
     for (auto& mcdjet : mcdjets) {
 
@@ -86,16 +87,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   std::vector<o2::framework::DataProcessorSpec> tasks;
 
   tasks.emplace_back(
-    adaptAnalysisTask<JetTaggerChargedJets>(cfgc,
-                                            SetDefaultProcesses{}, TaskName{"jet-taggerhf-charged"}));
+      adaptAnalysisTask<JetTaggerChargedJets>(cfgc,
+        SetDefaultProcesses{}, TaskName{"jet-taggerhf-charged"}));
 
   tasks.emplace_back(
-    adaptAnalysisTask<JetTaggerFullJets>(cfgc,
-                                         SetDefaultProcesses{}, TaskName{"jet-taggerhf-full"}));
+      adaptAnalysisTask<JetTaggerFullJets>(cfgc,
+        SetDefaultProcesses{}, TaskName{"jet-taggerhf-full"}));
   /*
-    tasks.emplace_back(
-      adaptAnalysisTask<JetTaggerNeutralJets>(cfgc,
-                                                  SetDefaultProcesses{}, TaskName{"jet-taggerhf-neutral"}));
-  */
+     tasks.emplace_back(
+     adaptAnalysisTask<JetTaggerNeutralJets>(cfgc,
+     SetDefaultProcesses{}, TaskName{"jet-taggerhf-neutral"}));
+     */
   return WorkflowSpec{tasks};
 }

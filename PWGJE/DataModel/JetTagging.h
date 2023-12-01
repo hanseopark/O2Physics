@@ -26,6 +26,46 @@ using namespace o2::analysis;
 namespace o2::aod
 {
 
+// Defines tagger track extention
+namespace jtracktagext
+{
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_INDEX_COLUMN(Track, track);
+DECLARE_SOA_COLUMN(DCAX, dcaX, float);
+DECLARE_SOA_COLUMN(DCAY, dcaY, float);
+} // namespace jtracktagext
+
+DECLARE_SOA_TABLE(JTracksTagExt, "AOD", "JTracksTagExt",
+                  o2::soa::Index<>,
+                  jtracktagext::CollisionId,
+                  jtracktagext::DCAX,
+                  jtracktagext::DCAY);
+
+using JTrackTagExt = JTracksTagExt::iterator;
+
+DECLARE_SOA_TABLE(JTrackTagExtPIs, "AOD", "JTrackTagExtPIs",
+                  jtracktagext::TrackId);
+
+// Defines tagger trackIU extention
+namespace jtrackiutagext
+{
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_INDEX_COLUMN(Track, track);
+DECLARE_SOA_COLUMN(DCAX, dcaX, float);
+DECLARE_SOA_COLUMN(DCAY, dcaY, float);
+} // namespace jtrackiutagext
+
+DECLARE_SOA_TABLE(JTracksIUTagExt, "AOD", "JTracksIUTagExt",
+                  o2::soa::Index<>,
+                  jtrackiutagext::CollisionId,
+                  jtrackiutagext::DCAX,
+                  jtrackiutagext::DCAY);
+
+using JTrackIUTagExt = JTracksIUTagExt::iterator;
+
+DECLARE_SOA_TABLE(JTrackIUTagExtPIs, "AOD", "JTraIUTagExtPIs",
+                  jtrackiutagext::TrackId);
+
 // Defines the jet substrcuture table definition
 #define JETTAGGING_TABLE_DEF(_jet_type_, _name_, _description_) \
   namespace _name_##tagging                                     \
