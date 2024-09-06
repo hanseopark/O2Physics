@@ -233,7 +233,7 @@ struct JetTaggerHFQA {
       registry.add("h2_jet_phi_part_flavour", "", {HistType::kTH2F, {{phiAxis}, {jetFlavourAxis}}});
     }
 
-    if (doprocessIPsMCPMCDMatched) {
+    if (doprocessIPsMCPMCDMatched || doprocessIPsMCPMCDMatchedWeighted) {
       registry.add("h3_jet_pt_jet_pt_part_matchedgeo_flavour", "", {HistType::kTH3F, {{jetPtAxis}, {jetPtAxis}, {jetFlavourAxis}}});
       registry.add("h3_jet_pt_jet_pt_part_matchedgeo_flavour_run2", "", {HistType::kTH3F, {{jetPtAxis}, {jetPtAxis}, {jetFlavourAxis}}});
       registry.add("h3_jet_pt_flavour_flavour_run2", "", {HistType::kTH3F, {{jetPtAxis}, {jetFlavourAxis}, {jetFlavourAxis}}});
