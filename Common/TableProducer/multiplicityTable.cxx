@@ -112,7 +112,7 @@ struct MultiplicityTable {
   struct : ConfigurableGroup {
     Configurable<std::string> ccdburl{"ccdburl", "http://alice-ccdb.cern.ch", "The CCDB endpoint url address"};
     Configurable<std::string> ccdbPath{"ccdbpath", "Centrality/Calibration", "The CCDB path for centrality/multiplicity information"};
-    Configurable<std::string> reconstructionPass{"reconstructionPass", "metadata", {"Apass to use when fetching the calibration tables. `metadata` to fetch it from the AO2D metadata. Empty does not check for any pass. Otherwise it will override the metadata."}};
+    Configurable<std::string> reconstructionPass{"reconstructionPass", "", {"Apass to use when fetching the calibration tables. Empty (default) does not check for any pass. Use `metadata` to fetch it from the AO2D metadata. Otherwise it will override the metadata."}};
   } ccdbConfig;
 
   Configurable<bool> produceHistograms{"produceHistograms", false, {"Option to produce debug histograms"}};
@@ -567,7 +567,7 @@ struct MultiplicityTable {
             tableExtra(collision.numContrib(), collision.chi2(), collision.collisionTimeRes(),
                        mRunNumber, collision.posZ(), collision.sel8(),
                        nHasITS, nHasTPC, nHasTOF, nHasTRD, nITSonly, nTPConly, nITSTPC,
-                       nAllTracksTPCOnly, nAllTracksITSTPC, bcNumber, collision.trackOccupancyInTimeRange());
+                       nAllTracksTPCOnly, nAllTracksITSTPC, collision.trackOccupancyInTimeRange());
           } break;
           case kMultSelections: // Multiplicity selections
           {
@@ -627,7 +627,7 @@ struct MultiplicityTable {
   Filter mcParticleFilter = (aod::mcparticle::eta < 4.9f) && (aod::mcparticle::eta > -3.3f);
   using mcParticlesFiltered = soa::Filtered<aod::McParticles>;
 
-  void processMC(aod::McCollision const&, mcParticlesFiltered const& mcParticles)
+  void processMC(aod::McCollision const& mcCollision, mcParticlesFiltered const& mcParticles)
   {
     int multFT0A = 0;
     int multFT0C = 0;
@@ -662,7 +662,7 @@ struct MultiplicityTable {
       if (3.5 < mcPart.eta() && mcPart.eta() < 4.9)
         multFT0A++;
     }
-    tableExtraMc(multFT0A, multFT0C, multBarrelEta05, multBarrelEta08, multBarrelEta10);
+    tableExtraMc(multFT0A, multFT0C, multBarrelEta05, multBarrelEta08, multBarrelEta10, mcCollision.posZ());
   }
 
   Configurable<float> min_pt_globaltrack{"min_pt_globaltrack", 0.15, "min. pT for global tracks"};
