@@ -1142,10 +1142,11 @@ struct JetTaggerHFQA {
       }
       int jetflavour = mcdjet.origin();
       float secondaryPt = 0;
-      float totalJetPt  = 0;
+      float totalJetPt = 0;
       for (auto const& track : mcdjet.template tracks_as<JetTagTracksMCD>()) {
         float varImpXY = track.dcaXY() * jettaggingutilities::cmTomum;
-        if (!track.has_mcParticle()) continue;
+        if (!track.has_mcParticle())
+          continue;
         auto mcParticle = track.mcParticle();
         totalJetPt += track.pt();
         if (mcParticle.isPhysicalPrimary()) {
