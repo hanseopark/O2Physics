@@ -24,8 +24,9 @@
 #include "Common/Core/trackUtilities.h"
 #include "Common/DataModel/EventSelection.h"
 #include "Common/DataModel/Multiplicity.h"
-#include "Common/DataModel/PIDResponse.h"
 #include "Common/DataModel/PIDResponseITS.h"
+#include "Common/DataModel/PIDResponseTOF.h"
+#include "Common/DataModel/PIDResponseTPC.h"
 #include "Common/DataModel/TrackSelectionTables.h"
 #include "EventFiltering/Zorro.h"
 #include "EventFiltering/ZorroSummary.h"
@@ -204,7 +205,7 @@ struct AntinucleiInJets {
     }
 
     // Load reweighting histograms from CCDB if antinuclei efficiency processing is enabled
-    if (doprocessAntinucleiEfficiency) {
+    if (doprocessAntinucleiEfficiency || doprocessJetsMCgen || doprocessJetsMCrec) {
       ccdb->setURL(urlToCcdb.value);
       ccdb->setCaching(true);
       ccdb->setLocalObjectValidityChecking();
