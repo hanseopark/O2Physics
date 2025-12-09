@@ -1936,7 +1936,7 @@ struct JetTaggerHFQA {
   }
   PROCESS_SWITCH(JetTaggerHFQA, processSV3ProngMCDMult, "Fill 3prong imformation for mcd jets with multiplicity", false);
 
-  void processSV3ProngMCDMultWeighted(soa::Filtered<soa::Join<aod::JetCollisionsMCD , aod::JCollisionOutliers>>::iterator const& collision, soa::Join<JetTableMCD, TagTableMCD, aod::MCDSecondaryVertex3ProngIndices> const& mcdjets, aod::MCDSecondaryVertex3Prongs const& prongs)
+  void processSV3ProngMCDMultWeighted(soa::Filtered<soa::Join<aod::JetCollisionsMCD, aod::JCollisionOutliers>>::iterator const& collision, soa::Join<JetTableMCD, TagTableMCD, aod::MCDSecondaryVertex3ProngIndices> const& mcdjets, aod::MCDSecondaryVertex3Prongs const& prongs)
   {
     if (collision.trackOccupancyInTimeRange() < trackOccupancyInTimeRangeMin || trackOccupancyInTimeRangeMax < collision.trackOccupancyInTimeRange()) {
       return;
